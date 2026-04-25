@@ -1,0 +1,64 @@
+name: Pages
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  pages: write
+  id-token: write
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache Lean and Lake
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.elan
+            ~/.lake/packages
+          key: lean-${{ hashFiles('lean-toolchain') }}-lake-${{ hashFiles('lake-manifest.json') }}
+          restore-keys: |
+            lean-${{ hashFiles('lean-toolchain') }}-lake-
+            lean-${{ hashFiles('lean-toolchain') }}-
+            lean-
+
+      - name: Install Lean
+        uses: leanprover/lean-action@v1
+
+      - name: Fetch Mathlib cache
+        run: lake exe cache get
+
+      - name: Build project
+        run: lake build
+
+      - name: Build manual executable
+        run: lake build manual
+
+      - name: Generate manual HTML
+        run: .lake/build/bin/manual
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _out/html-single/
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
