@@ -183,7 +183,13 @@ constant is `c = 1` and the bound is exact (not just eventually):
 ```
 
 *Case `k ≥ 3`.* This is the interesting one. Set
-`s := ⌈k/2⌉`, `t := ⌊k/2⌋`, `q := k²`. Take a graph `G` that witnesses
+`s := ⌈k/2⌉`, `t := ⌊k/2⌋`, `q := k²`. The split is purposeful:
+`s + t = k`, and the entire proof is engineered to build a forbidden
+`K_k` as a `K_s` glued to a `K_t` *living inside the common
+neighborhood of the `K_s`*. The exponent `q = k²` is then large
+enough to make the asymptotic algebra at the end work out.
+
+Take a graph `G` that witnesses
 the value `R(k, ℓ + 1) - 1`: a graph on `R(k, ℓ + 1) - 1` vertices
 with no `K_k` and no `(ℓ + 1)`-independent set. Such a graph exists
 by definition of `sInf`, and we extract it as
@@ -338,7 +344,11 @@ statement and saved a few hundred lines of log-Stirling arithmetic:
 
 The exponent `k/2 − 1/4` is the smallest clean rational *strictly
 above* `⌈k/2⌉ - 1`, which turns out to be the binding threshold in
-the main argument's eq. (3).
+the main argument's eq. (3). (The threshold appears because both
+DRC terms include factors of the form `ℓ^(s-1) / N^?`, so we need
+`N` to grow strictly faster than `ℓ^(s-1) = ℓ^(⌈k/2⌉ - 1)`. Picking
+`N` as `ℓ^(k/2 − 1/4)` leaves a `1/4`-exponent margin, which we
+spend in the final `q`-th root.)
 
 The proof is the standard *deletion method* on a `p`-weighted random
 graph, refactored to avoid `MeasureTheory`. Four sections in
@@ -466,13 +476,25 @@ DRC's second conjunct rearranges into
 We then bound each summand using Erdős–Szekeres (upper bounds on
 `R(s, ℓ + 1)` and `R(t, ℓ + 1)` are polynomial in `ℓ`) and our
 polynomial lower bound on `N` (which is essentially `R(k, ℓ + 1) - 1`).
-The exponent gymnastics turns out to give
+The exponent gymnastics is the part that we'd hand-wave in the
+paper:
 
 ```
-RHS  ≤  C · ℓ ^ (-1/4)
+First term:   (R(s, ℓ+1) - 1) / N  ≤  C₁ · ℓ^(s-1) / ℓ^(k/2 - 1/4)
+                                   =  C₁ · ℓ^((s-1) - (k/2 - 1/4))
+                                   ≤  C₁ · ℓ^(-1/4)         (since s - 1 ≤ k/2 - 1/2 ≤ k/2 - 1/2)
+
+Second term:  (N choose s) · ((R(t, ℓ+1) - 1)/N)^q
+                                   ≤  N^s · C₂^q · ℓ^(q(t-1)) / N^q
+                                   =  C₂^q · ℓ^(q(t-1)) / N^(q-s)
+                                   ≤  C₂^q · ℓ^(q(t-1) - (q-s)·(k/2 - 1/4))
+
+Sum                                ≤  C · ℓ^(-1/4)
 ```
 
-uniformly in `k ≥ 3`. Taking the `q`-th root:
+uniformly in `k ≥ 3` (the second-term exponent is more strongly
+negative — the binding constraint is the first term). Taking the
+`q`-th root:
 
 ```
 (R(k, ℓ+1) - R(k, ℓ) - 1) / N  ≤  C^(1/q) · ℓ ^ (-1/(4 q))
@@ -591,6 +613,24 @@ If you want to chase a specific step of the paper, the fastest path
 is: read `PROOF_OUTLINE.md` first, then the corresponding section of
 this post, then the Lean file.
 
+The dependency graph between modules is small and forms a tree:
+
+```
+                    Basic
+                  /      \
+       ErdosSzekeres      DRC
+            |              |
+       LowerBound          |
+              \            /
+               MainTheorem
+```
+
+`Basic` carries the definitions and easy lemmas; `ErdosSzekeres`
+proves Lemma 1 and exposes the non-emptiness witness that
+`LowerBound` and `MainTheorem` then rely on; `LowerBound` builds the
+weighted-counting infrastructure for Lemma 2; `DRC` proves Lemma 3
+independently; `MainTheorem` assembles everything.
+
 # Acknowledgements & references
 
 * P. Erdős. *Some unsolved problems in graph theory and combinatorial
@@ -606,8 +646,8 @@ this post, then the Lean file.
   structure and randomness.* Cambridge University Press, 2023.
 
 The Lean infrastructure stands on `mathlib v4.28.0-rc1`. Verso, the
-documentation system rendering this page, is by David Thrane
-Christiansen at the Lean FRO. Codex CLI is OpenAI's. Claude is
-Anthropic's. The `b-mehta/exponential-ramsey` project (Lean 3,
-incompatible with our toolchain) was a source of inspiration even
-though we couldn't depend on it.
+documentation system rendering this page, comes from the Lean FRO.
+Codex CLI is OpenAI's. Claude is Anthropic's. The
+`b-mehta/exponential-ramsey` project (Lean 3, incompatible with our
+toolchain) was a source of inspiration even though we couldn't
+depend on it.
