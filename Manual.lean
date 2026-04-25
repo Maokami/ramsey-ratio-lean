@@ -18,7 +18,7 @@ open RamseyRatio
 
 set_option pp.rawOnError true
 
-#doc (Manual) "Reproducing OpenAI's Erdős proof in Lean 4" =>
+#doc (Manual) "OpenAI's Erdős proof in Lean 4" =>
 %%%
 authors := ["ramsey-ratio-lean"]
 shortTitle := "Ramsey ratio in Lean"
