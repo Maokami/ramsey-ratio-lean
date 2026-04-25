@@ -7,7 +7,9 @@ Lean 4 formalization of
 > `lim_{ℓ → ∞} R(k, ℓ + 1) / R(k, ℓ) = 1`,
 > where `R(k, ℓ)` is the off-diagonal Ramsey number.
 
-Source paper: `docs/openai-ramsey-ratio.pdf`. Proof outline and module map: [`ROADMAP.md`](./ROADMAP.md).
+Source paper: `docs/openai-ramsey-ratio.pdf`. Proof outline (paper steps
+mapped to Lean theorems): [`PROOF_OUTLINE.md`](./PROOF_OUTLINE.md).
+Module map and signature-change log: [`ROADMAP.md`](./ROADMAP.md).
 
 ## Build
 
