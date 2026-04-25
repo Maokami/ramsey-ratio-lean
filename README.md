@@ -37,6 +37,12 @@ Mathlib's pre-built oleans from the public cache (`lake exe cache get`
 is invoked automatically by the GitHub Pages workflow; locally it's
 optional but speeds things up).
 
+## License
+
+MIT — see [`LICENSE`](./LICENSE). The included
+`docs/openai-ramsey-ratio.pdf` belongs to its original authors and is *not*
+covered by this license.
+
 ## Layout
 
 ```
