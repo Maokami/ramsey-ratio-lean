@@ -34,3 +34,17 @@ Quick check:
 lake env lean -- -e "import RamseyRatio; #print axioms RamseyRatio.ramsey_ratio_tendsto_one"
 # 'RamseyRatio.ramsey_ratio_tendsto_one' depends on axioms: [propext, Classical.choice, Quot.sound]
 ```
+
+## Browsing the proof
+
+A [Verso](https://github.com/leanprover/verso) document accompanies the
+formalization (`Manual.lean`). Build it to a single-page HTML site:
+
+```sh
+lake build manual && .lake/build/bin/manual
+# output written to _out/html-single/index.html
+python3 -m http.server 8000 --directory _out/html-single
+```
+
+Open `http://localhost:8000` for an interactive proof tour with
+hover-to-see-the-Lean-statement on every theorem.
