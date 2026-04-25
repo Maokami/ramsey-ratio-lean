@@ -1,5 +1,7 @@
 # ramsey-ratio-lean
 
+[![Pages](https://img.shields.io/badge/proof%20tour-maokami.github.io%2Framsey--ratio--lean-blue)](https://maokami.github.io/ramsey-ratio-lean/)
+
 Lean 4 formalization of
 
 > **Theorem (Erdős, proved by an internal OpenAI model, 2026).**
@@ -7,44 +9,56 @@ Lean 4 formalization of
 > `lim_{ℓ → ∞} R(k, ℓ + 1) / R(k, ℓ) = 1`,
 > where `R(k, ℓ)` is the off-diagonal Ramsey number.
 
-Source paper: `docs/openai-ramsey-ratio.pdf`. Proof outline (paper steps
-mapped to Lean theorems): [`PROOF_OUTLINE.md`](./PROOF_OUTLINE.md).
-Module map and signature-change log: [`ROADMAP.md`](./ROADMAP.md).
+The Lean development closes every step against `mathlib v4.28.0-rc1`,
+with no `sorry` and the standard kernel axioms only.
+
+```
+'RamseyRatio.ramsey_ratio_tendsto_one' depends on axioms:
+  [propext, Classical.choice, Quot.sound]
+```
+
+## Reading
+
+* **Proof tour** — a long-form, hover-to-elaborate-the-Lean walkthrough
+  is published at <https://maokami.github.io/ramsey-ratio-lean/>.
+* **`PROOF_OUTLINE.md`** — paper sections mapped to Lean theorem names.
+* **`ROADMAP.md`** — module map and signature-change log.
+* **`docs/openai-ramsey-ratio.pdf`** — the original 3-page proof.
 
 ## Build
 
-```sh
-lake update    # first time only
+```
+lake update
 lake build
 ```
 
-Toolchain: `leanprover/lean4:v4.28.0-rc1`, mathlib `v4.28.0-rc1`.
+Toolchain: `leanprover/lean4:v4.28.0-rc1`. The first build pulls
+Mathlib's pre-built oleans from the public cache (`lake exe cache get`
+is invoked automatically by the GitHub Pages workflow; locally it's
+optional but speeds things up).
 
-## Status
+## Layout
 
-**Complete.** All milestones M1–M6 closed; `lake build` passes with axioms
-`[propext, Classical.choice, Quot.sound]` only — no `sorry`, no custom
-axioms. The main theorem is `RamseyRatio.ramsey_ratio_tendsto_one`; the
-quantitative form is `RamseyRatio.ramsey_ratio_quantitative`. See
-[`ROADMAP.md`](./ROADMAP.md) for the proof sketch and module map.
-
-Quick check:
-
-```sh
-lake env lean -- -e "import RamseyRatio; #print axioms RamseyRatio.ramsey_ratio_tendsto_one"
-# 'RamseyRatio.ramsey_ratio_tendsto_one' depends on axioms: [propext, Classical.choice, Quot.sound]
+```
+RamseyRatio/
+  Basic.lean           definitions, R(2, ℓ) = ℓ, critical-graph extraction
+  ErdosSzekeres.lean   Lemma 1 (R(k, ℓ) ≤ C(k+ℓ-2, k-1))
+  LowerBound.lean      Lemma 2 (R(k, ℓ) ≥ C · ℓ^(k/2 - 1/4))
+  DRC.lean             Lemma 3 (Fox–Sudakov dependent random choice)
+  MainTheorem.lean     critical_min_degree → quantitative → Tendsto
+Manual.lean            Verso source for the proof tour
+PROOF_OUTLINE.md       paper-to-Lean cross-reference
+ROADMAP.md             milestone log + signature-change log
 ```
 
-## Browsing the proof
+The dependency graph is
 
-A [Verso](https://github.com/leanprover/verso) document accompanies the
-formalization (`Manual.lean`). Build it to a single-page HTML site:
-
-```sh
-lake build manual && .lake/build/bin/manual
-# output written to _out/html-single/index.html
-python3 -m http.server 8000 --directory _out/html-single
 ```
-
-Open `http://localhost:8000` for an interactive proof tour with
-hover-to-see-the-Lean-statement on every theorem.
+                Basic
+              /      \
+   ErdosSzekeres      DRC
+        |              |
+   LowerBound          |
+          \            /
+           MainTheorem
+```
