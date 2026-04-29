@@ -486,7 +486,7 @@ underlying proof.
 # Reproduce it
 
 ```
-git clone https://github.com/<you>/ramsey-ratio-lean
+git clone https://github.com/Maokami/ramsey-ratio-lean
 cd ramsey-ratio-lean
 lake exe cache get      # mathlib pre-built oleans
 lake build              # ~2 minutes warm cache
