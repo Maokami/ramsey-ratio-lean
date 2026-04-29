@@ -860,4 +860,280 @@ theorem ramsey_lower_bound (k : ℕ) (hk : 3 ≤ k) :
   have hℓ_le : ℓ ≤ R(k, ℓ) := by
     simpa [ramsey_two ℓ hℓ] using hle
   exact_mod_cast hℓ_le
+
+private lemma eventually_four_mul_const_log_le_rpow_nat {A γ : ℝ}
+    (hA0 : 0 ≤ A) (hγ : 0 < γ) :
+    ∀ᶠ ℓ : ℕ in atTop, 4 * A * Real.log (ℓ : ℝ) ≤ (ℓ : ℝ) ^ γ := by
+  have hO : (fun ℓ : ℕ => 4 * A * Real.log (ℓ : ℝ)) =o[atTop]
+      fun ℓ : ℕ => (ℓ : ℝ) ^ γ := by
+    simpa [mul_assoc] using
+      ((isLittleO_log_rpow_atTop hγ).comp_tendsto
+        (tendsto_natCast_atTop_atTop (R := ℝ))).const_mul_left (4 * A)
+  filter_upwards [hO.eventuallyLE, Filter.eventually_ge_atTop 1] with ℓ hle hℓ
+  have hx1 : (1 : ℝ) ≤ ℓ := by exact_mod_cast hℓ
+  have hx0 : (0 : ℝ) ≤ ℓ := by positivity
+  have hlog_nonneg : 0 ≤ Real.log (ℓ : ℝ) := Real.log_nonneg hx1
+  have hleft_nonneg : 0 ≤ 4 * A * Real.log (ℓ : ℝ) := by positivity
+  have hright_nonneg : 0 ≤ (ℓ : ℝ) ^ γ := Real.rpow_nonneg hx0 _
+  have hleft_abs : ‖4 * A * Real.log (ℓ : ℝ)‖ = 4 * A * Real.log (ℓ : ℝ) := by
+    simpa [Real.norm_eq_abs] using abs_of_nonneg hleft_nonneg
+  have hright_abs : ‖(ℓ : ℝ) ^ γ‖ = (ℓ : ℝ) ^ γ := by
+    simpa [Real.norm_eq_abs] using abs_of_nonneg hright_nonneg
+  simpa [hleft_abs, hright_abs] using hle
+
+private lemma poly_clique_term_bound {k n ℓ : ℕ} {α β p : ℝ}
+    (hk : 0 < k)
+    (hα : α = (k : ℝ) / 2 - 1 / 4)
+    (hβ : β = 1 - 1 / (2 * (k : ℝ)))
+    (hp : p = (ℓ : ℝ) ^ (-β))
+    (hn : (n : ℝ) ≤ (ℓ : ℝ) ^ α)
+    (hℓpos : 0 < (ℓ : ℝ)) :
+    ((Nat.choose n k : ℕ) : ℝ) * p ^ Nat.choose k 2 ≤
+      (ℓ : ℝ) ^ α / (Nat.factorial k : ℝ) := by
+  have hchoose : ((Nat.choose n k : ℕ) : ℝ) ≤ (n : ℝ) ^ k / (Nat.factorial k : ℝ) := by
+    simpa using (Nat.choose_le_pow_div (α := ℝ) k n)
+  have hfac_pos : (0 : ℝ) < (Nat.factorial k : ℝ) := by positivity
+  have hℓnonneg : 0 ≤ (ℓ : ℝ) := hℓpos.le
+  have hn_pow : (n : ℝ) ^ k ≤ ((ℓ : ℝ) ^ α) ^ k := by
+    exact pow_le_pow_left₀ (Nat.cast_nonneg n) hn k
+  have hp_pow_eq : p ^ Nat.choose k 2 = (ℓ : ℝ) ^ (-(β * (Nat.choose k 2 : ℝ))) := by
+    rw [hp]
+    rw [← Real.rpow_natCast ((ℓ : ℝ) ^ (-β)) (Nat.choose k 2)]
+    rw [← Real.rpow_mul hℓnonneg (-β) (Nat.choose k 2 : ℝ)]
+    ring_nf
+  have hpow_mul_eq : ((ℓ : ℝ) ^ α) ^ k * p ^ Nat.choose k 2 = (ℓ : ℝ) ^ α := by
+    rw [hp_pow_eq]
+    rw [← Real.rpow_natCast ((ℓ : ℝ) ^ α) k]
+    rw [← Real.rpow_mul hℓnonneg α (k : ℝ)]
+    rw [← Real.rpow_add hℓpos]
+    congr 1
+    rw [Nat.cast_choose_two ℝ]
+    rw [hα, hβ]
+    have hkR : (k : ℝ) ≠ 0 := by positivity
+    field_simp [hkR]
+    ring
+  have hp_pow_nonneg : 0 ≤ p ^ Nat.choose k 2 := pow_nonneg (by rw [hp]; positivity) _
+  calc
+    ((Nat.choose n k : ℕ) : ℝ) * p ^ Nat.choose k 2
+        ≤ ((n : ℝ) ^ k / (Nat.factorial k : ℝ)) * p ^ Nat.choose k 2 := by
+          exact mul_le_mul_of_nonneg_right hchoose hp_pow_nonneg
+    _ ≤ (((ℓ : ℝ) ^ α) ^ k / (Nat.factorial k : ℝ)) * p ^ Nat.choose k 2 := by
+          exact mul_le_mul_of_nonneg_right
+            (div_le_div_of_nonneg_right hn_pow hfac_pos.le) hp_pow_nonneg
+    _ = (ℓ : ℝ) ^ α / (Nat.factorial k : ℝ) := by
+          rw [div_mul_eq_mul_div, hpow_mul_eq]
+
+private lemma poly_indep_term_bound {n ℓ : ℕ} {α β p : ℝ}
+    (hp : p = (ℓ : ℝ) ^ (-β))
+    (hp0 : 0 < p) (hp1 : p < 1)
+    (hn : (n : ℝ) ≤ (ℓ : ℝ) ^ α)
+    (hℓ : 2 ≤ ℓ) :
+    ((Nat.choose n ℓ : ℕ) : ℝ) * (1 - p) ^ Nat.choose ℓ 2 ≤
+      Real.exp (α * ((ℓ : ℝ) * Real.log (ℓ : ℝ)) - ((ℓ : ℝ) ^ (2 - β)) / 4) := by
+  let x : ℝ := ℓ
+  have hx2 : (2 : ℝ) ≤ x := by dsimp [x]; exact_mod_cast hℓ
+  have hx0 : 0 < x := by nlinarith
+  have hx0le : 0 ≤ x := hx0.le
+  have hchoose : ((Nat.choose n ℓ : ℕ) : ℝ) ≤ (n : ℝ) ^ ℓ := by
+    exact_mod_cast Nat.choose_le_pow n ℓ
+  have hn_pow : (n : ℝ) ^ ℓ ≤ (x ^ α) ^ ℓ := by
+    exact pow_le_pow_left₀ (Nat.cast_nonneg n) (by simpa [x] using hn) ℓ
+  have hn_exp : (x ^ α) ^ ℓ = Real.exp (α * (x * Real.log x)) := by
+    rw [← Real.rpow_natCast (x ^ α) ℓ]
+    rw [← Real.rpow_mul hx0le α (ℓ : ℝ)]
+    rw [Real.rpow_def_of_pos hx0]
+    congr 1
+    dsimp [x]
+    ring
+  have hpm_nonneg : 0 ≤ p := hp0.le
+  have hchoose_lower : x ^ 2 / 4 ≤ (Nat.choose ℓ 2 : ℝ) := by
+    simpa [x] using choose_two_ge_sq_div_four hℓ
+  have hp_sq : p * (x ^ 2 / 4) = x ^ (2 - β) / 4 := by
+    rw [hp]
+    change x ^ (-β) * (x ^ 2 / 4) = x ^ (2 - β) / 4
+    calc
+      x ^ (-β) * (x ^ 2 / 4) = (x ^ (-β) * x ^ 2) / 4 := by ring
+      _ = x ^ (2 - β) / 4 := by
+          congr 1
+          rw [show x ^ 2 = x ^ (2 : ℝ) by norm_num [Real.rpow_natCast]]
+          rw [← Real.rpow_add hx0]
+          ring_nf
+  have hpow_exp : (1 - p) ^ Nat.choose ℓ 2 ≤ Real.exp (-(x ^ (2 - β) / 4)) := by
+    have hbase : 1 - p ≤ Real.exp (-p) := Real.one_sub_le_exp_neg p
+    have hpow := pow_le_pow_left₀ (sub_nonneg.mpr hp1.le) hbase (Nat.choose ℓ 2)
+    refine hpow.trans ?_
+    rw [← Real.exp_nat_mul]
+    rw [Real.exp_le_exp]
+    have hp_choose : x ^ (2 - β) / 4 ≤ p * (Nat.choose ℓ 2 : ℝ) := by
+      rw [← hp_sq]
+      exact mul_le_mul_of_nonneg_left hchoose_lower hpm_nonneg
+    nlinarith
+  calc
+    ((Nat.choose n ℓ : ℕ) : ℝ) * (1 - p) ^ Nat.choose ℓ 2
+        ≤ (x ^ α) ^ ℓ * Real.exp (-(x ^ (2 - β) / 4)) := by
+          exact mul_le_mul (hchoose.trans hn_pow) hpow_exp
+            (pow_nonneg (sub_nonneg.mpr hp1.le) _) (pow_nonneg (Real.rpow_nonneg hx0le _) _)
+    _ = Real.exp (α * (x * Real.log x) - x ^ (2 - β) / 4) := by
+      rw [hn_exp, ← Real.exp_add]
+      ring_nf
+
+private lemma nat_div_two_cast_ge_third {n : ℕ} (hn : 2 ≤ n) :
+    ((n : ℝ) / 3) ≤ ((n / 2 : ℕ) : ℝ) := by
+  have hnat : n ≤ 3 * (n / 2) := by omega
+  have hreal : (n : ℝ) ≤ 3 * ((n / 2 : ℕ) : ℝ) := by exact_mod_cast hnat
+  nlinarith
+
+lemma poly_lowerBound_setup (k : ℕ) (hk : 3 ≤ k) :
+    ∀ᶠ ℓ : ℕ in atTop,
+      ∃ n : ℕ, ∃ p : ℝ,
+        n = Nat.floor ((ℓ : ℝ) ^ ((k : ℝ) / 2 - 1 / 4)) ∧
+        p = (ℓ : ℝ) ^ (-(1 - 1 / (2 * (k : ℝ)))) ∧
+        0 < p ∧ p < 1 ∧ 0 < n ∧
+          ((Nat.choose n k : ℕ) : ℝ) * p ^ Nat.choose k 2 +
+            ((Nat.choose n ℓ : ℕ) : ℝ) * (1 - p) ^ Nat.choose ℓ 2 ≤ (n : ℝ) / 2 := by
+  let α : ℝ := (k : ℝ) / 2 - 1 / 4
+  let γ : ℝ := 1 / (2 * (k : ℝ))
+  let β : ℝ := 1 - γ
+  have hkpos : 0 < k := by omega
+  have hαpos : 0 < α := by
+    dsimp [α]
+    have hkR : (3 : ℝ) ≤ k := by exact_mod_cast hk
+    linarith
+  have hα0 : 0 ≤ α := hαpos.le
+  have hγpos : 0 < γ := by
+    dsimp [γ]
+    positivity
+  have hβpos : 0 < β := by
+    dsimp [β, γ]
+    rw [sub_pos]
+    rw [div_lt_one (by positivity : (0 : ℝ) < 2 * (k : ℝ))]
+    have hkR : (3 : ℝ) ≤ k := by exact_mod_cast hk
+    nlinarith
+  have hxLargeEv :
+      ∀ᶠ ℓ : ℕ in atTop, (4 : ℝ) ≤ (ℓ : ℝ) ^ α :=
+    ((tendsto_rpow_atTop hαpos).comp
+      (tendsto_natCast_atTop_atTop (R := ℝ))).eventually_ge_atTop 4
+  have hlogEv := eventually_four_mul_const_log_le_rpow_nat (A := α) (γ := γ) hα0 hγpos
+  filter_upwards [hxLargeEv, hlogEv, Filter.eventually_ge_atTop 2] with
+    ℓ hxLarge hlog hℓ2
+  let n : ℕ := Nat.floor ((ℓ : ℝ) ^ α)
+  let p : ℝ := (ℓ : ℝ) ^ (-β)
+  have hℓpos : 0 < (ℓ : ℝ) := by positivity
+  have hℓnonneg : 0 ≤ (ℓ : ℝ) := hℓpos.le
+  have hℓgt1 : (1 : ℝ) < ℓ := by exact_mod_cast (by omega : 1 < ℓ)
+  have hp0 : 0 < p := by
+    dsimp [p]
+    positivity
+  have hp1 : p < 1 := by
+    dsimp [p]
+    exact Real.rpow_lt_one_of_one_lt_of_neg hℓgt1 (by linarith)
+  have hn_ge_four : 4 ≤ n := by
+    dsimp [n]
+    exact Nat.le_floor hxLarge
+  have hnpos : 0 < n := by omega
+  have hn_le_x : (n : ℝ) ≤ (ℓ : ℝ) ^ α := by
+    dsimp [n]
+    exact Nat.floor_le (Real.rpow_nonneg hℓnonneg _)
+  refine ⟨n, p, ?_, ?_, hp0, hp1, hnpos, ?_⟩
+  · dsimp [n, α]
+  · dsimp [p, β, γ]
+  have hterm1_raw :
+      ((Nat.choose n k : ℕ) : ℝ) * p ^ Nat.choose k 2 ≤
+        (ℓ : ℝ) ^ α / (Nat.factorial k : ℝ) := by
+    exact poly_clique_term_bound (k := k) (n := n) (ℓ := ℓ) (α := α) (β := β) (p := p)
+      hkpos rfl rfl rfl hn_le_x hℓpos
+  have hfac_ge_nat : 6 ≤ Nat.factorial k := by
+    simpa using (Nat.factorial_le hk : Nat.factorial 3 ≤ Nat.factorial k)
+  have hfac_ge : (6 : ℝ) ≤ (Nat.factorial k : ℝ) := by exact_mod_cast hfac_ge_nat
+  have hfac_pos : (0 : ℝ) < (Nat.factorial k : ℝ) := by positivity
+  have hx_nonneg : 0 ≤ (ℓ : ℝ) ^ α := Real.rpow_nonneg hℓnonneg _
+  have hterm1_to_n :
+      (ℓ : ℝ) ^ α / (Nat.factorial k : ℝ) ≤ (n : ℝ) / 4 := by
+    have hn_floor : (2 * ((ℓ : ℝ) ^ α)) / 3 ≤ (n : ℝ) := by
+      have hsub : (ℓ : ℝ) ^ α - 1 < (n : ℝ) := by
+        simpa [n] using Nat.sub_one_lt_floor ((ℓ : ℝ) ^ α)
+      nlinarith
+    have hx_div_fac_le : (ℓ : ℝ) ^ α / (Nat.factorial k : ℝ) ≤ (ℓ : ℝ) ^ α / 6 := by
+      exact div_le_div_of_nonneg_left hx_nonneg (by norm_num : (0 : ℝ) < 6) hfac_ge
+    nlinarith
+  have hterm1 :
+      ((Nat.choose n k : ℕ) : ℝ) * p ^ Nat.choose k 2 ≤ (n : ℝ) / 4 :=
+    hterm1_raw.trans hterm1_to_n
+  have hterm2_exp :
+      ((Nat.choose n ℓ : ℕ) : ℝ) * (1 - p) ^ Nat.choose ℓ 2 ≤
+        Real.exp (α * ((ℓ : ℝ) * Real.log (ℓ : ℝ)) - ((ℓ : ℝ) ^ (2 - β)) / 4) := by
+    exact poly_indep_term_bound (n := n) (ℓ := ℓ) (α := α) (β := β) (p := p)
+      rfl hp0 hp1 hn_le_x hℓ2
+  have hpower_mul : (ℓ : ℝ) * (ℓ : ℝ) ^ γ = (ℓ : ℝ) ^ (2 - β) := by
+    calc
+      (ℓ : ℝ) * (ℓ : ℝ) ^ γ = (ℓ : ℝ) ^ (1 : ℝ) * (ℓ : ℝ) ^ γ := by
+        rw [Real.rpow_one]
+      _ = (ℓ : ℝ) ^ (1 + γ) := by
+        rw [← Real.rpow_add hℓpos]
+      _ = (ℓ : ℝ) ^ (2 - β) := by
+        congr 1
+        dsimp [β, γ]
+        ring
+  have hlog_scaled :
+      4 * (α * ((ℓ : ℝ) * Real.log (ℓ : ℝ))) ≤ (ℓ : ℝ) ^ (2 - β) := by
+    calc
+      4 * (α * ((ℓ : ℝ) * Real.log (ℓ : ℝ))) =
+          (ℓ : ℝ) * (4 * α * Real.log (ℓ : ℝ)) := by ring
+      _ ≤ (ℓ : ℝ) * (ℓ : ℝ) ^ γ := by
+          exact mul_le_mul_of_nonneg_left hlog hℓnonneg
+      _ = (ℓ : ℝ) ^ (2 - β) := hpower_mul
+  have harg_nonpos :
+      α * ((ℓ : ℝ) * Real.log (ℓ : ℝ)) - ((ℓ : ℝ) ^ (2 - β)) / 4 ≤ 0 := by
+    nlinarith
+  have hterm2_le_one :
+      ((Nat.choose n ℓ : ℕ) : ℝ) * (1 - p) ^ Nat.choose ℓ 2 ≤ 1 :=
+    hterm2_exp.trans (Real.exp_le_one_iff.mpr harg_nonpos)
+  have hterm2 :
+      ((Nat.choose n ℓ : ℕ) : ℝ) * (1 - p) ^ Nat.choose ℓ 2 ≤ (n : ℝ) / 4 := by
+    have hn_ge_four_R : (4 : ℝ) ≤ n := by exact_mod_cast hn_ge_four
+    nlinarith
+  nlinarith
+
+/-- **Lemma 2 (polynomial lower bound).** For each fixed `k ≥ 3`, the
+off-diagonal Ramsey number has the eventual lower bound
+`R(k, ℓ) ≥ C * ℓ ^ (k / 2 - 1 / 4)`. -/
+theorem ramsey_lower_bound_power (k : ℕ) (hk : 3 ≤ k) :
+    ∃ C > (0 : ℝ), ∀ᶠ ℓ : ℕ in atTop,
+      C * (ℓ : ℝ) ^ ((k : ℝ) / 2 - 1 / 4) ≤ (R(k, ℓ) : ℝ) := by
+  refine ⟨1 / 8, by norm_num, ?_⟩
+  let α : ℝ := (k : ℝ) / 2 - 1 / 4
+  have hαpos : 0 < α := by
+    dsimp [α]
+    have hkR : (3 : ℝ) ≤ k := by exact_mod_cast hk
+    linarith
+  have hxLargeEv :
+      ∀ᶠ ℓ : ℕ in atTop, (4 : ℝ) ≤ (ℓ : ℝ) ^ α :=
+    ((tendsto_rpow_atTop hαpos).comp
+      (tendsto_natCast_atTop_atTop (R := ℝ))).eventually_ge_atTop 4
+  filter_upwards [poly_lowerBound_setup k hk, hxLargeEv, Filter.eventually_ge_atTop 2] with
+    ℓ hsetup hxLarge hℓ2
+  obtain ⟨n, p, hn_def, hp_def, hp0, hp1, hnpos, hV⟩ := hsetup
+  have hdel : n / 2 < R(k, ℓ) := by
+    exact deletion_ramsey_bound (k := k) (ℓ := ℓ) (n := n) (p := p)
+      (by omega) (by omega) hp0 hp1 hnpos hV
+  have hn_floor_lower : (2 * ((ℓ : ℝ) ^ α)) / 3 ≤ (n : ℝ) := by
+    have hsub : (ℓ : ℝ) ^ α - 1 < (n : ℝ) := by
+      simpa [hn_def, α] using Nat.sub_one_lt_floor ((ℓ : ℝ) ^ α)
+    nlinarith
+  have hn_ge_four : 4 ≤ n := by
+    rw [hn_def]
+    exact Nat.le_floor (by simpa [α] using hxLarge)
+  have hdiv_lower : (1 / 8 : ℝ) * (ℓ : ℝ) ^ α ≤ ((n / 2 : ℕ) : ℝ) := by
+    have hthird : (n : ℝ) / 3 ≤ ((n / 2 : ℕ) : ℝ) :=
+      nat_div_two_cast_ge_third (by omega : 2 ≤ n)
+    nlinarith
+  have hR_from_del : ((n / 2 : ℕ) : ℝ) ≤ (R(k, ℓ) : ℝ) := by
+    exact_mod_cast Nat.le_of_lt hdel
+  calc
+    (1 / 8 : ℝ) * (ℓ : ℝ) ^ ((k : ℝ) / 2 - 1 / 4)
+        = (1 / 8 : ℝ) * (ℓ : ℝ) ^ α := by simp [α]
+    _ ≤ ((n / 2 : ℕ) : ℝ) := hdiv_lower
+    _ ≤ (R(k, ℓ) : ℝ) := hR_from_del
+
+
 end RamseyRatio
