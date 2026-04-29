@@ -116,4 +116,34 @@ theorem ramsey_symm (k ℓ : ℕ) : R(k, ℓ) = R(ℓ, k) := by
   ext N
   exact hiff N
 
+-- Monotonicity `ramsey_le_ramsey_succ` lives in `RamseyRatio.ErdosSzekeres` because the
+-- proof needs the Ramsey set to be nonempty (supplied by the Erdős–Szekeres bound).
+
+/-- Existence of a critical (Ramsey-extremal) graph: a `K_k`-free graph on
+`R(k, ℓ + 1) - 1` vertices with independence number `≤ ℓ`. -/
+theorem exists_critical_graph (k ℓ : ℕ) (hk : 2 ≤ k) (hℓ : 1 ≤ ℓ) :
+    ∃ G : SimpleGraph (Fin (R(k, ℓ + 1) - 1)),
+      (¬ ∃ s : Finset _, G.IsNClique k s) ∧
+      (¬ ∃ s : Finset _, G.IsNIndepSet (ℓ + 1) s) := by
+  suffices hnot : ¬ HasRamseyProperty (R(k, ℓ + 1) - 1) k (ℓ + 1) by
+    unfold HasRamseyProperty at hnot
+    push_neg at hnot
+    obtain ⟨G, hc, hi⟩ := hnot
+    exact ⟨G, fun ⟨s, hs⟩ => hc s hs, fun ⟨s, hs⟩ => hi s hs⟩
+  rcases Nat.eq_zero_or_pos (R(k, ℓ + 1)) with hR | hR
+  · rw [hR]
+    simp only [Nat.zero_sub]
+    intro hp
+    obtain ⟨s, hs⟩ | ⟨s, hs⟩ := hp (⊥ : SimpleGraph (Fin 0))
+    · have hcard := hs.card_eq
+      rw [fin_zero_finset_empty s, Finset.card_empty] at hcard
+      omega
+    · have hcard := hs.card_eq
+      rw [fin_zero_finset_empty s, Finset.card_empty] at hcard
+      omega
+  · intro hp
+    have hle : R(k, ℓ + 1) ≤ R(k, ℓ + 1) - 1 :=
+      Nat.sInf_le (show R(k, ℓ + 1) - 1 ∈ {N | HasRamseyProperty N k (ℓ + 1)} from hp)
+    omega
+
 end RamseyRatio
