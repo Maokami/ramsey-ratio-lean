@@ -798,4 +798,52 @@ theorem ramsey_ratio_drc_estimate (k : ℕ) (hk : 3 ≤ k) :
         exact add_le_add le_rfl htail
   simpa [ratio, x] using hratio_final
 
+/-! ### §4. Main theorem and its quantitative form -/
+
+/-- Quantitative version of the main theorem (paper Remark 1):
+there is `cₖ > 0` with `R(k, ℓ + 1) / R(k, ℓ) ≤ 1 + ℓ^(-cₖ)` for large `ℓ`. -/
+theorem ramsey_ratio_quantitative (k : ℕ) (hk : 2 ≤ k) :
+    ∃ c > (0 : ℝ), ∀ᶠ ℓ : ℕ in atTop,
+      (R(k, ℓ + 1) : ℝ) / R(k, ℓ) ≤ 1 + (ℓ : ℝ) ^ (-c) := by
+  by_cases hk2 : k = 2
+  · subst k
+    refine ⟨1, by norm_num, ?_⟩
+    filter_upwards [Filter.eventually_ge_atTop 2] with ℓ hℓ
+    have hℓposNat : 0 < ℓ := by omega
+    have hℓpos : (0 : ℝ) < (ℓ : ℝ) := by exact_mod_cast hℓposNat
+    have hRℓ : R(2, ℓ) = ℓ := ramsey_two ℓ hℓ
+    have hRℓ_succ : R(2, ℓ + 1) = ℓ + 1 := ramsey_two (ℓ + 1) (by omega)
+    calc
+      (R(2, ℓ + 1) : ℝ) / R(2, ℓ) =
+          (((ℓ + 1 : ℕ) : ℝ) / (ℓ : ℝ)) := by
+        rw [hRℓ_succ, hRℓ]
+      _ = 1 + (ℓ : ℝ) ^ (-(1 : ℝ)) := by
+        rw [Real.rpow_neg_one]
+        field_simp [hℓpos.ne']
+        norm_num
+      _ ≤ 1 + (ℓ : ℝ) ^ (-(1 : ℝ)) := le_rfl
+  · have _hk3 : 3 ≤ k := by omega
+    exact ramsey_ratio_drc_estimate k _hk3
+
+/-- **Theorem 1 (Erdős).** For every fixed `k ≥ 2`,
+`R(k, ℓ + 1) / R(k, ℓ) → 1` as `ℓ → ∞`. -/
+theorem ramsey_ratio_tendsto_one (k : ℕ) (hk : 2 ≤ k) :
+    Tendsto (fun ℓ : ℕ => (R(k, ℓ + 1) : ℝ) / R(k, ℓ)) atTop (𝓝 1) := by
+  obtain ⟨c, hc, hq⟩ := ramsey_ratio_quantitative k hk
+  have h_lower : ∀ᶠ ℓ : ℕ in atTop, (1 : ℝ) ≤ (R(k, ℓ + 1) : ℝ) / R(k, ℓ) := by
+    filter_upwards [Filter.eventually_ge_atTop 1] with ℓ hℓ
+    have hRpos : (0 : ℝ) < (R(k, ℓ) : ℝ) := by
+      exact_mod_cast one_le_ramsey k ℓ (by omega) hℓ
+    rw [le_div_iff₀ hRpos, one_mul]
+    exact_mod_cast ramsey_le_ramsey_succ k ℓ
+  have h_upper_tendsto : Tendsto (fun ℓ : ℕ => (1 : ℝ) + (ℓ : ℝ) ^ (-c)) atTop (𝓝 1) := by
+    have h1 : Tendsto (fun x : ℝ => x ^ (-c)) atTop (𝓝 0) := tendsto_rpow_neg_atTop hc
+    have h2 : Tendsto (fun ℓ : ℕ => (ℓ : ℝ) ^ (-c)) atTop (𝓝 0) :=
+      h1.comp tendsto_natCast_atTop_atTop
+    simpa using (tendsto_const_nhds : Tendsto (fun _ : ℕ => (1 : ℝ)) atTop (𝓝 1)).add h2
+  exact tendsto_of_tendsto_of_tendsto_of_le_of_le'
+    tendsto_const_nhds h_upper_tendsto h_lower hq
+
 end RamseyRatio
+
+#print axioms RamseyRatio.ramsey_ratio_tendsto_one
