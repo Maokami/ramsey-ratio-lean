@@ -1,0 +1,7 @@
+/.lake
+/build
+.DS_Store
+*.olean
+*.ilean
+*.hash
+/.omc
