@@ -24,99 +24,36 @@ authors := ["ramsey-ratio-lean"]
 shortTitle := "Ramsey ratio in Lean"
 %%%
 
-# A puzzle about parties
+# Introduction
 
-Six people walk into a room. They either know each other or they don't —
-no half-acquaintances, no edge cases. Then no matter how the social graph
-turns out, one of two things happens: either three of the six are
-pairwise acquainted (a clique) or three of them are pairwise strangers
-(an *anti*-clique). With five people, the puzzle has counter-examples;
-with six, it doesn't.
+For positive integers `k, ℓ`, the *off-diagonal Ramsey number*
+`R(k, ℓ)` is the smallest `N` such that every simple graph on `N`
+vertices contains either a clique on `k` vertices or an independent
+set on `ℓ` vertices. Exact values are known in almost no nontrivial
+cases; the classical bounds are `R(k, ℓ) ≪ ℓ^(k-1)`
+(Erdős–Szekeres, 1935) and `R(k, ℓ) ≫ (ℓ / log ℓ)^(k/2)`
+(Erdős, 1961), with a polynomial gap that has resisted improvement
+in this regime.
 
-That's the 1947 *party problem*, and the smallest number that forces
-the dichotomy is called a Ramsey number. In notation:
-{lean}`@RamseyRatio.ramsey` `R(3, 3) = 6`. The story generalizes: for
-any `k` and `ℓ`, `R(k, ℓ)` is the smallest `N` such that every graph on
-`N` vertices contains either a `k`-clique or an `ℓ`-vertex independent
-set. Whatever the graph — friend network, web of citations, the dating
-preferences of mathematicians — once the population hits `R(k, ℓ)`, you
-*cannot* avoid both structures simultaneously.
+Erdős asked in 1971 whether, for fixed `k`, the consecutive ratio
+`R(k, ℓ + 1) / R(k, ℓ)` tends to `1` as `ℓ → ∞`. In April 2026 an
+internal model at OpenAI produced a three-page proof, reproduced
+in this repository as
+[`docs/openai-ramsey-ratio.pdf`](https://github.com/Maokami/ramsey-ratio-lean/blob/main/docs/openai-ramsey-ratio.pdf).
 
-The catch: actually computing `R(k, ℓ)` is, in nearly all cases,
-*impossibly hard*. We do not know `R(5, 5)`. We will likely never know
-`R(10, 10)`. Our best estimates are exponential gaps between lower and
-upper bounds. Erdős famously joked that if aliens demanded the value of
-`R(5, 5)` or they would destroy Earth, we should mobilize all our
-computers and mathematicians and try to compute it; if they demanded
-`R(6, 6)`, we should try to destroy the aliens first.
+This page is a Lean 4 reproduction of that argument. The headline
+declaration {lean}`@RamseyRatio.ramsey_ratio_tendsto_one` is
+machine-checked against `mathlib v4.28.0-rc1` and depends only on
+Lean's three foundational axioms — `propext`, `Classical.choice`,
+`Quot.sound` — with no `sorry` and no custom axioms.
 
-# A 60-year-old question about ratios
-
-So instead of computing Ramsey numbers exactly, we study *how they
-grow*. Erdős asked, in 1971: how does the ratio of consecutive
-off-diagonal Ramsey numbers behave? That is, fix `k`, and look at
-
-```
-              R(k, ℓ + 1)
-              -----------     as ℓ → ∞.
-                R(k, ℓ)
-```
-
-A naïve guess is "no idea — the function `R(k, ·)` could oscillate
-wildly." Erdős conjectured the answer is *just `1`* — the ratio
-tends to one, no matter how complicated the underlying numbers are.
-
-This question sat open for over half a century. The classical bounds
-say `R(k, ℓ) ≪ ℓ^(k-1)` (Erdős–Szekeres 1935) and
-`R(k, ℓ) ≫ (ℓ / log ℓ)^(k/2)` (Erdős 1961). Both polynomial; the
-exponents differ. There's a wide gap between the bounds, and the
-conjecture asks for a ratio bound that holds *despite* the gap.
-
-# 2026: a 3-page proof from OpenAI — and no artifact
-
-In April 2026, an internal model at OpenAI produced a proof. The
-write-up is three pages long and lives in
-[`docs/openai-ramsey-ratio.pdf`](https://github.com/) of this
-repository. It uses three classical inputs (Erdős–Szekeres, the
-probabilistic lower bound, and Fox–Sudakov's *dependent random choice*)
-and a clever observation: if the ratio failed to tend to 1, a
-"critical" graph for `R(k, ℓ + 1)` would have very high minimum degree —
-which is at odds with the sparseness one expects of optimal
-Ramsey-extremal graphs. Dependent random choice exploits the tension.
-
-But — and this is why this repository exists — *the proof artifact was
-not released*. We have the paper. We do not have a Lean file, a Coq
-script, or any other independently verifiable rendering of the
-argument. For a result of this importance, that's an unusually
-fragile state of affairs.
-
-So this project is a reproduction. We took the three-page proof and,
-over the course of one extended pair-programming session with Anthropic's
-Claude and OpenAI's Codex CLI, encoded it in Lean 4 against
-`mathlib v4.28.0-rc1`. The final declaration is
-
-{lean}`@RamseyRatio.ramsey_ratio_tendsto_one`
-
-— machine-checked, depending only on Lean's three foundational axioms
-(`propext`, `Classical.choice`, `Quot.sound`). Zero `sorry`. Zero custom
-axioms. The whole repository is on GitHub; this document is the
-narrative companion.
-
-## What this post covers
-
-The rest of this page walks through the proof at three altitudes:
-
-1. *Bird's-eye* — the shape of the argument, and why it is
-   surprisingly hard to formalize despite being only three pages.
-2. *Building blocks* — the three classical lemmas, with the Lean
-   statements and a few key tactics.
-3. *The main combine* — how the lemmas fit together to force the
-   ratio to 1, and the asymptotic algebra at the end.
-
-You don't need to know any Lean to follow the prose. If you do, every
-named theorem in the post is a clickable hyperlink to the actual
-declaration. Hover over the inline references to see Lean's full
-statement and type, courtesy of Verso.
+The exposition below walks through the proof at three altitudes:
+a bird's-eye sketch of the argument; the three classical inputs
+it rests on (Erdős–Szekeres, the probabilistic lower bound, and
+Fox–Sudakov *dependent random choice*); and the asymptotic
+combine that pulls them together. Every named Lean declaration in
+the prose is a hover-reference to its actual statement and type,
+courtesy of Verso.
 
 # Background: Ramsey numbers, formalized
 
@@ -235,47 +172,47 @@ Combining all of this is the contents of
 to the actual `Tendsto` statement is one short top-up
 {lean}`@RamseyRatio.ramsey_ratio_tendsto_one`.
 
-# Why three pages take 2 700 lines
+# Why three pages occupy 2 700 lines
 
-A reader who has seen Lean before may now want to ask: *why does a
-three-page proof balloon by three orders of magnitude?* Three reasons:
+A reader familiar with Lean may ask why a three-page argument
+expands by three orders of magnitude. Three reasons account for
+the bulk of the gap.
 
 *(1) Common neighbourhoods are sneaky.* `commonNeighbors G T` is
-defined naturally as a `Set V`, but to take its cardinality one wants
-either `Set.ncard` or its `Finset` shadow, depending on the lemma.
-We carry both, with a short bridge lemma:
+defined naturally as a `Set V`, but its cardinality requires either
+`Set.ncard` or its `Finset` shadow, depending on the caller. The
+development carries both forms with a short bridge lemma:
 
 ```
 private lemma commonNeighbors_ncard (G : SimpleGraph V) (s : Finset V) :
     (commonNeighbors G s).ncard = (commonNeighborFinset G s).card
 ```
 
-*(2) The probabilistic argument has no probability theory.* Erdős's
-deletion method conventionally lives in `MeasureTheory`. We sidestep
-that by working with weighted sums over the *finite* set of edge
-subsets: we define {lean}`@RamseyRatio.commonNeighbors` and then a
-weighted measure
+*(2) The probabilistic argument is finitary.* Erdős's deletion
+method conventionally lives in `MeasureTheory`. The development
+sidesteps that by working with weighted sums over the *finite* set
+of edge subsets, defining a finitary weighted measure
 
 ```
 private def edgeWeight (E A : Finset α) (p : ℝ) : ℝ :=
   p ^ A.card * (1 - p) ^ (E.card - A.card)
 ```
 
-with `Σ_{A ⊆ E} edgeWeight E A p = 1` (a finitary version of "this is
-a probability distribution"), then proceed with Markov / averaging
-arguments at the level of finite sums. About 1 100 lines of `LowerBound.lean`
-are this scaffolding.
+with `Σ_{A ⊆ E} edgeWeight E A p = 1` (a finitary statement that
+the weights form a probability distribution), then proceeds with
+Markov-style averaging at the level of finite sums. Roughly 1 100
+lines of `LowerBound.lean` are this scaffolding.
 
-*(3) Asymptotic algebra is fiddly.* The final stretch — going from
-"each summand is `o(1)`" to "and therefore the ratio is at most
-`1 + ℓ^(-c)`" — is where most of `MainTheorem.lean` lives. It is the
-combinatorial-asymptotic equivalent of "a few lines of routine
-algebra in the paper." We wrote about 600 lines of
+*(3) Asymptotic algebra is fiddly.* The final stretch — passing
+from "each summand is `o(1)`" to "the ratio is at most
+`1 + ℓ^(-c)`" — accounts for most of `MainTheorem.lean`. It is
+the combinatorial-asymptotic equivalent of "a few lines of
+routine algebra in the paper" and occupies roughly 600 lines of
 `calc … _ ≤ … by gcongr` chains.
 
 These three observations cover the bulk of the size gap. The
-argument's *structure* is faithful to the paper, modulo a couple of
-deliberate signature changes documented in `ROADMAP.md`.
+argument's *structure* is faithful to the paper, modulo two
+deliberate signature changes recorded in `ROADMAP.md`.
 
 # Lemma 1 — Erdős–Szekeres `R(k, ℓ) ≤ C(k+ℓ-2, k-1)`
 
@@ -529,41 +466,6 @@ sandwich theorem
 
 That's the entire proof of Theorem 1, formalized.
 
-# What I learned
-
-*Working with Codex.* The hardest stretches — Erdős–Szekeres'
-bookkeeping induction, the 1 100-line `LowerBound.lean`, the eq. (3)
-asymptotic algebra — were drafted by Codex (OpenAI's CLI agent) under
-my orchestration. Pattern that worked: I'd describe the goal, the
-relevant Mathlib API (sometimes the wrong one, which Codex would
-correct), and an explicit parameter choice. Codex would produce a
-~80% correct draft; I'd compile it, point at errors, and Codex would
-patch. About four delegation rounds total.
-
-Patterns that didn't work as well: asking Codex to "write the proof"
-without anchoring to a specific Mathlib lemma name. The model will
-happily produce a plausible-looking proof using a non-existent lemma.
-Always check `lake build` after every patch.
-
-*Paper deviations as a feature.* We deviated from the paper twice:
-weakening Lemma 2 (no log factor; smaller exponent), and adding
-positivity hypotheses to dependent random choice. Both deviations
-are recorded in `ROADMAP.md` under "Signature changes." Both, in
-hindsight, made the formalization *cleaner* than a literal
-transcription would have been. The paper's `(ℓ / log ℓ)^(k/2)` form
-adds 200+ lines of `Real.log` arithmetic for no gain in the main
-argument, and the paper's "Let `q, s, m` be positive integers" was
-already there — our literal transcription missed it.
-
-*The chicken-and-egg of `Nat.sInf`.* Several proofs needed
-`HasRamseyProperty R(k, ℓ) k ℓ`, which needs the Ramsey set to be
-non-empty, which needs Erdős–Szekeres. We learned to thread through
-{lean}`@RamseyRatio.ramsey_mem_property` and to defer monotonicity
-into `ErdosSzekeres.lean`. A small architectural lesson: when your
-definition involves `sInf`, expose a "non-emptiness witness" lemma
-*early* in the file hierarchy, even if proving it requires a
-forward-reference comment.
-
 # Capstone: the headline statement, type-checked here
 
 The following block is elaborated by Verso during the build of this
@@ -631,23 +533,30 @@ proves Lemma 1 and exposes the non-emptiness witness that
 weighted-counting infrastructure for Lemma 2; `DRC` proves Lemma 3
 independently; `MainTheorem` assembles everything.
 
-# Acknowledgements & references
+# References
 
-* P. Erdős. *Some unsolved problems in graph theory and combinatorial
-  analysis.* Combinatorial Mathematics and its Applications,
-  Academic Press, 1971.
-* P. Erdős and G. Szekeres. *A combinatorial problem in geometry.*
-  Compositio Math. 2, 1935.
-* J. Fox and B. Sudakov. *Dependent random choice.*
-  Random Structures Algorithms 38, 2011.
-* OpenAI internal model. *On the ratio of `R(k, ℓ)` and `R(k, ℓ + 1)`.*
-  2026 (the artifact under reproduction).
-* Y. Zhao. *Graph theory and additive combinatorics: exploring
-  structure and randomness.* Cambridge University Press, 2023.
+* P. Erdős. *Some unsolved problems in graph theory and
+  combinatorial analysis*. In Combinatorial Mathematics and its
+  Applications (Proc. Conf., Oxford, 1969), pp. 97–109. Academic
+  Press, London, 1971.
 
-The Lean infrastructure stands on `mathlib v4.28.0-rc1`. Verso, the
-documentation system rendering this page, comes from the Lean FRO.
-Codex CLI is OpenAI's. Claude is Anthropic's. The
-`b-mehta/exponential-ramsey` project (Lean 3, incompatible with our
-toolchain) was a source of inspiration even though we couldn't
-depend on it.
+* P. Erdős and G. Szekeres. *A combinatorial problem in geometry*.
+  Compositio Math. 2 (1935), 463–470.
+
+* J. Fox and B. Sudakov. *Dependent random choice*. Random
+  Structures Algorithms 38 (2011), 68–99.
+
+* Y. Zhao. *Graph theory and additive combinatorics: Exploring
+  structure and randomness*. Cambridge University Press, 2023.
+
+* OpenAI. *On the ratio of R(k, ℓ) and R(k, ℓ + 1)*. 2026.
+  The three-page artifact reproduced in this development;
+  included in the repository as
+  [`docs/openai-ramsey-ratio.pdf`](https://github.com/Maokami/ramsey-ratio-lean/blob/main/docs/openai-ramsey-ratio.pdf).
+
+# Acknowledgements
+
+This formalization is built on
+[mathlib4](https://github.com/leanprover-community/mathlib4)
+(Apache-2.0) and rendered with
+[Verso](https://github.com/leanprover/verso) (Apache-2.0).
