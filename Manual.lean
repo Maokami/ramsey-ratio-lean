@@ -20,7 +20,7 @@ set_option pp.rawOnError true
 
 #doc (Manual) "OpenAI's Erdős proof in Lean 4" =>
 %%%
-authors := ["ramsey-ratio-lean"]
+authors := ["Jaeho Choi"]
 shortTitle := "Ramsey ratio in Lean"
 %%%
 
@@ -560,3 +560,5 @@ This formalization is built on
 [mathlib4](https://github.com/leanprover-community/mathlib4)
 (Apache-2.0) and rendered with
 [Verso](https://github.com/leanprover/verso) (Apache-2.0).
+
+Maintained by [Jaeho Choi](https://github.com/Maokami).
